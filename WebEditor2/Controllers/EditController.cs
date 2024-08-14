@@ -31,7 +31,7 @@ namespace WebEditor2.Controllers
 
         public JsonResult Load(int id, bool simpleMode)
         {
-            Services.EditorService editor = new Services.EditorService();
+            Services.EditorService editor = new Services.EditorService(logger);
             EditorDictionary[id] = editor;
             // TODO
             // string libFolder = Server.MapPath("~/bin/Core/");
@@ -202,7 +202,7 @@ namespace WebEditor2.Controllers
         }
 
         [HttpPost]
-        public RedirectToRouteResult SaveSettings(Models.Editor settings)
+        public IActionResult SaveSettings(Models.Editor settings)
         {
             SaveSettingBool("simplemode", settings.SimpleMode);
             return RedirectToAction("Game", new { id = settings.GameId });
@@ -375,7 +375,7 @@ namespace WebEditor2.Controllers
         public ActionResult Publish(int id)
         {
             logger.LogInformation("Publishing game {0}", id);
-            Services.EditorService editor = new Services.EditorService();
+            Services.EditorService editor = new Services.EditorService(logger);
             string libFolder = Server.MapPath("~/bin/Core/");
             string filename = Services.FileManagerLoader.GetFileManager().GetFile(id);
             if (filename == null)
@@ -438,13 +438,13 @@ namespace WebEditor2.Controllers
                     System.IO.File.Delete(outputFilename);
                 }
 
-                Logging.Log.InfoFormat("Publishing {0} as {1}", id, outputFilename);
+                logger.LogInformation("Publishing {0} as {1}", id, outputFilename);
 
                 editor.Publish(outputFilename, null, null);
 
                 UploadOutputToAzure(outputFilename);
 
-                Logging.Log.InfoFormat("Publish succeeded for {0}", id);
+                logger.LogInformation("Publish succeeded for {0}", id);
             }
             
 

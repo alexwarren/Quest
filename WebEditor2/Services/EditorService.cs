@@ -50,10 +50,11 @@ namespace WebEditor2.Services
             return EditorController.GetValidationError(result, input);
         }
 
-        public EditorService()
+        public EditorService(ILogger logger)
         {
             m_controller = new EditorController();
             m_controller.EditorMode = EditorMode.Web;
+            this.logger = logger;
         }
 
         public InitialiseResult Initialise(int id, string filename, string libFolder, bool simpleMode)
@@ -325,19 +326,19 @@ namespace WebEditor2.Services
                     IEditableScripts script = currentValue as IEditableScripts;
                     var scriptDictionary = currentValue as IEditableDictionary<IEditableScripts>;
                     var stringDictionary = currentValue as IEditableDictionary<string>;
-                    var newObjectRef = kvp.Value as WebEditor.Models.ElementSaveData.ObjectReferenceSaveData;
-                    var newCommandPattern = kvp.Value as WebEditor.Models.ElementSaveData.PatternSaveData;
+                    var newObjectRef = kvp.Value as Models.ElementSaveData.ObjectReferenceSaveData;
+                    var newCommandPattern = kvp.Value as Models.ElementSaveData.PatternSaveData;
                     if (script != null)
                     {
-                        SaveScript(script, kvp.Value as WebEditor.Models.ElementSaveData.ScriptsSaveData, key);
+                        SaveScript(script, kvp.Value as Models.ElementSaveData.ScriptsSaveData, key);
                     }
                     else if (scriptDictionary != null)
                     {
-                        SaveScriptDictionary(key, null, scriptDictionary, kvp.Value as WebEditor.Models.ElementSaveData.ScriptSaveData);
+                        SaveScriptDictionary(key, null, scriptDictionary, kvp.Value as Models.ElementSaveData.ScriptSaveData);
                     }
                     else if (stringDictionary != null)
                     {
-                        SaveStringDictionary(key, stringDictionary, kvp.Value as WebEditor.Models.ElementSaveData.ScriptSaveData);
+                        SaveStringDictionary(key, stringDictionary, kvp.Value as Models.ElementSaveData.ScriptSaveData);
                     }
                     else if (newObjectRef != null)
                     {
@@ -371,7 +372,7 @@ namespace WebEditor2.Services
             }
             catch (Exception ex)
             {
-                Logging.Log.ErrorFormat("Error in SaveElement: {0}", ex);
+                logger.LogError("Error in SaveElement: {0}", ex);
                 result.Error = ex.Message;
                 return result;
             }
@@ -451,18 +452,18 @@ namespace WebEditor2.Services
             {
                 return (double)oldValue != (double)newValue;
             }
-            if (newValue is WebEditor.Models.IgnoredValue)
+            if (newValue is Models.IgnoredValue)
             {
                 return false;
             }
-            if (oldValue == null && newValue is WebEditor.Models.ElementSaveData.ScriptsSaveData)
+            if (oldValue == null && newValue is Models.ElementSaveData.ScriptsSaveData)
             {
-                if (((WebEditor.Models.ElementSaveData.ScriptsSaveData)newValue).ScriptLines.Count == 0)
+                if (((Models.ElementSaveData.ScriptsSaveData)newValue).ScriptLines.Count == 0)
                 {
                     return false;
                 }
             }
-            if (oldValue == null && newValue is WebEditor.Models.ElementSaveData.ScriptSaveData)
+            if (oldValue == null && newValue is Models.ElementSaveData.ScriptSaveData)
             {
                 return false;
             }
@@ -473,12 +474,12 @@ namespace WebEditor2.Services
                 newValue == null ? "null" : newValue.GetType().ToString()));
         }
 
-        private void SaveScript(IEditableScripts scripts, WebEditor.Models.ElementSaveData.ScriptsSaveData saveData, string parentElement)
+        private void SaveScript(IEditableScripts scripts, Models.ElementSaveData.ScriptsSaveData saveData, string parentElement)
         {
             int count = 0;
             foreach (IEditableScript script in scripts.Scripts)
             {
-                WebEditor.Models.ElementSaveData.ScriptSaveData data = saveData.ScriptLines[count];
+                Models.ElementSaveData.ScriptSaveData data = saveData.ScriptLines[count];
 
                 if (data.Error != null)
                 {
@@ -509,12 +510,12 @@ namespace WebEditor2.Services
 
                         if (oldValue is IEditableScripts)
                         {
-                            SaveScript((IEditableScripts)oldValue, (WebEditor.Models.ElementSaveData.ScriptsSaveData)data.Attributes[attribute.Key], parentElement);
+                            SaveScript((IEditableScripts)oldValue, (Models.ElementSaveData.ScriptsSaveData)data.Attributes[attribute.Key], parentElement);
                         }
                         else if (oldValue is IEditableDictionary<IEditableScripts>)
                         {
                             IEditableDictionary<IEditableScripts> dictionary = (IEditableDictionary<IEditableScripts>)oldValue;
-                            WebEditor.Models.ElementSaveData.ScriptSaveData newData = (WebEditor.Models.ElementSaveData.ScriptSaveData)attribute.Value;
+                            Models.ElementSaveData.ScriptSaveData newData = (Models.ElementSaveData.ScriptSaveData)attribute.Value;
                             SaveScriptDictionary(parentElement, script, dictionary, newData);
                         }
                         else
@@ -540,7 +541,7 @@ namespace WebEditor2.Services
                         m_needsSaving = true;
                     }
 
-                    SaveScript(ifScript.ThenScript, (WebEditor.Models.ElementSaveData.ScriptsSaveData)data.Attributes["then"], parentElement);
+                    SaveScript(ifScript.ThenScript, (Models.ElementSaveData.ScriptsSaveData)data.Attributes["then"], parentElement);
 
                     int elseIfCount = 0;
                     foreach (EditableIfScript.EditableElseIf elseIfScript in ifScript.ElseIfScripts)
@@ -553,13 +554,13 @@ namespace WebEditor2.Services
                             m_needsSaving = true;
                         }
 
-                        SaveScript(elseIfScript.EditableScripts, (WebEditor.Models.ElementSaveData.ScriptsSaveData)data.Attributes[string.Format("elseif{0}-then", elseIfCount)], parentElement);
+                        SaveScript(elseIfScript.EditableScripts, (Models.ElementSaveData.ScriptsSaveData)data.Attributes[string.Format("elseif{0}-then", elseIfCount)], parentElement);
                         elseIfCount++;
                     }
 
                     if (ifScript.ElseScript != null)
                     {
-                        SaveScript(ifScript.ElseScript, (WebEditor.Models.ElementSaveData.ScriptsSaveData)data.Attributes["else"], parentElement);
+                        SaveScript(ifScript.ElseScript, (Models.ElementSaveData.ScriptsSaveData)data.Attributes["else"], parentElement);
                     }
                 }
 
@@ -567,7 +568,7 @@ namespace WebEditor2.Services
             }
         }
 
-        private void SaveScriptDictionary(string parentElement, IEditableScript script, IEditableDictionary<IEditableScripts> dictionary, WebEditor.Models.ElementSaveData.ScriptSaveData newData)
+        private void SaveScriptDictionary(string parentElement, IEditableScript script, IEditableDictionary<IEditableScripts> dictionary, Models.ElementSaveData.ScriptSaveData newData)
         {
             Dictionary<string, string> keysToChange = new Dictionary<string, string>();
             int dictionaryCount = 0;
@@ -582,7 +583,7 @@ namespace WebEditor2.Services
                     m_needsSaving = true;
                 }
 
-                SaveScript(item.Value.Value, (WebEditor.Models.ElementSaveData.ScriptsSaveData)newData.Attributes[string.Format("value{0}", dictionaryCount)], parentElement);
+                SaveScript(item.Value.Value, (Models.ElementSaveData.ScriptsSaveData)newData.Attributes[string.Format("value{0}", dictionaryCount)], parentElement);
 
                 dictionaryCount++;
             }
@@ -608,7 +609,7 @@ namespace WebEditor2.Services
             }
         }
 
-        private void SaveStringDictionary(string parentElement, IEditableDictionary<string> dictionary, WebEditor.Models.ElementSaveData.ScriptSaveData newData)
+        private void SaveStringDictionary(string parentElement, IEditableDictionary<string> dictionary, Models.ElementSaveData.ScriptSaveData newData)
         {
             Dictionary<string, string> keysToChange = new Dictionary<string, string>();
             Dictionary<string, string> valuesToChange = new Dictionary<string, string>();
@@ -652,7 +653,7 @@ namespace WebEditor2.Services
             }
         }
 
-        private void SaveObjectReference(IEditorData data, string attribute, IEditableObjectReference currentValue, WebEditor.Models.ElementSaveData.ObjectReferenceSaveData newValue)
+        private void SaveObjectReference(IEditorData data, string attribute, IEditableObjectReference currentValue, Models.ElementSaveData.ObjectReferenceSaveData newValue)
         {
             if (currentValue == null && string.IsNullOrEmpty(newValue.Reference)) return;
 
@@ -665,7 +666,7 @@ namespace WebEditor2.Services
             }
         }
 
-        private void SaveCommandPattern(IEditorData data, string attribute, IEditableCommandPattern currentValue, WebEditor.Models.ElementSaveData.PatternSaveData newValue)
+        private void SaveCommandPattern(IEditorData data, string attribute, IEditableCommandPattern currentValue, Models.ElementSaveData.PatternSaveData newValue)
         {
             if (currentValue == null || currentValue.Pattern != newValue.Pattern)
             {
@@ -917,6 +918,7 @@ namespace WebEditor2.Services
         }
 
         private static List<int> s_oppositeDirs = new List<int> { 7, 6, 5, 4, 3, 2, 1, 0, 9, 8, 11, 10 };
+        private readonly ILogger logger;
 
         private string GetInverseDirection(string direction, List<string> directionNames)
         {
@@ -964,7 +966,7 @@ namespace WebEditor2.Services
 
         public AdditionalActionResult ProcessAdditionalAction(string key, string arguments)
         {
-            Logging.Log.DebugFormat("{0}: ProcessAdditionalAction {1}, {2}", m_id, key, arguments);
+            logger.LogDebug("{0}: ProcessAdditionalAction {1}, {2}", m_id, key, arguments);
             AdditionalActionResult result = new AdditionalActionResult();
             string[] data = arguments.Split(new[] { ' ' }, 3);
             string action = data[0];
