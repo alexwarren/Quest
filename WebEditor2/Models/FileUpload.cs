@@ -15,6 +15,6 @@ namespace WebEditor2.Models
         public string PostedFile { get; set; }
 
         [Required]
-        public HttpPostedFileBase File { get; set; }
+        public IFormFile File { get; set; }
     }
 }

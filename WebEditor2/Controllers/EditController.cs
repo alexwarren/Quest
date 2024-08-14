@@ -211,16 +211,17 @@ namespace WebEditor2.Controllers
 
         private void SaveSetting(string name, string value)
         {
-            HttpCookie cookie = new HttpCookie("simplemode", value);
-            cookie.Expires = DateTime.Now + new TimeSpan(30, 0, 0, 0);
-            Response.Cookies.Add(cookie);
+            Response.Cookies.Append("simplemode", value, new CookieOptions
+            {
+                Expires = DateTime.Now + new TimeSpan(30, 0, 0, 0)
+            });
         }
 
         private string GetSetting(string name)
         {
-            HttpCookie cookie = Request.Cookies.Get(name);
+            var cookie = Request.Cookies[name];
             if (cookie == null) return string.Empty;
-            return cookie.Value;
+            return cookie;
         }
 
         private void SaveSettingBool(string name, bool value)
@@ -273,7 +274,7 @@ namespace WebEditor2.Controllers
             var controlPermittedExtensions = EditorDictionary[fileModel.GameId].GetPermittedExtensions(fileModel.Key, fileModel.Attribute);
 
             if (fileModel.File == null
-                || fileModel.File.ContentLength == 0
+                || fileModel.File.Length == 0
                 || !s_serverPermittedExtensions.Contains(ext)
                 || !controlPermittedExtensions.Contains(ext))
             {
@@ -284,6 +285,8 @@ namespace WebEditor2.Controllers
             var filename = Path.GetFileName(fileModel.File.FileName);
             logger.LogDebug("{0}: Upload file {1}", fileModel.GameId, filename);
             var uploadPath = Services.FileManagerLoader.GetFileManager().UploadPath(fileModel.GameId);
+
+            var inputStream = fileModel.File.OpenReadStream();
 
             if (Config.AzureFiles)
             {
@@ -298,7 +301,7 @@ namespace WebEditor2.Controllers
                     {
                         blob.DownloadToStream(ms);
                         ms.Position = 0;
-                        if (!FilesAreIdentical(fileModel.File.InputStream, ms))
+                        if (!FilesAreIdentical(inputStream, ms))
                         {
                             filename = Path.GetFileNameWithoutExtension(fileModel.File.FileName) + " " + DateTime.UtcNow.ToString("yyyy-MM-dd HH.mm.ss") + Path.GetExtension(fileModel.File.FileName);
                             blob = container.GetBlockBlobReference(uploadPath + "/" + filename);
@@ -314,7 +317,7 @@ namespace WebEditor2.Controllers
                 if (continueSave)
                 {
                     blob.Properties.ContentType = "application/octet-stream";
-                    blob.UploadFromStream(fileModel.File.InputStream);
+                    blob.UploadFromStream(inputStream);
                 }
             }
             else
@@ -326,7 +329,7 @@ namespace WebEditor2.Controllers
                 {
                     FileStream existingFile = new FileStream(Path.Combine(uploadPath, filename), FileMode.Open);
 
-                    if (!FilesAreIdentical(fileModel.File.InputStream, existingFile))
+                    if (!FilesAreIdentical(inputStream, existingFile))
                     {
                         // rename the file by adding a number [count] at the end of filename
                         filename = EditorUtility.GetUniqueFilename(fileModel.File.FileName);
@@ -343,7 +346,8 @@ namespace WebEditor2.Controllers
                 if (continueSave)
                 {
                     var saveFile = Path.Combine(uploadPath, filename);
-                    fileModel.File.SaveAs(saveFile);
+                    // TODO
+                    // fileModel.File.SaveAs(saveFile);
                     UploadOutputToAzure(saveFile);
                 }
             }
@@ -465,9 +469,9 @@ namespace WebEditor2.Controllers
             blob.UploadFromStream(stream);
         }
 
-        private static CloudBlobContainer GetAzureBlobContainer(string containerName)
+        private CloudBlobContainer GetAzureBlobContainer(string containerName)
         {
-            var connectionString = ConfigurationManager.AppSettings["AzureConnectionString"];
+            var connectionString = configuration["AzureConnectionString"];
             var account = CloudStorageAccount.Parse(connectionString);
 
             var blobClient = account.CreateCloudBlobClient();
