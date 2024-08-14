@@ -7,10 +7,11 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using WebEditor2.Models;
 using Microsoft.AspNetCore.Hosting.Server;
+using WebEditor2.Services;
 
 namespace WebEditor2.Controllers
 {
-    public class EditController(IConfiguration configuration, ILogger logger) : Controller
+    public class EditController(IConfiguration configuration, ILogger logger, Session<Dictionary<int, EditorService>> editorSession) : Controller
     {
         // GET: /Edit/Game/1
 
@@ -82,7 +83,7 @@ namespace WebEditor2.Controllers
         public PartialViewResult EditElement(int id, string key, string tab, string error, string refreshTreeSelectElement)
         {
             logger.LogDebug("{0}: EditElement {1}", id, key);
-            if (Session["EditorDictionary"] == null)
+            if (editorSession.Get() == null)
             {
                 return Timeout();
             }
@@ -180,15 +181,15 @@ namespace WebEditor2.Controllers
             return PartialView("StringDictionaryEditor", EditorDictionary[id].GetStringDictionaryModel(id, key, control, ModelState, true));
         }
 
-        private Dictionary<int, Services.EditorService> EditorDictionary
+        private Dictionary<int, EditorService> EditorDictionary
         {
             get
             {
-                Dictionary<int, Services.EditorService> result = Session["EditorDictionary"] as Dictionary<int, Services.EditorService>;
+                Dictionary<int, EditorService> result = editorSession.Get();
                 if (result == null)
                 {
-                    result = new Dictionary<int, Services.EditorService>();
-                    Session["EditorDictionary"] = result;
+                    result = new Dictionary<int, EditorService>();
+                    editorSession.Set(result);
                 }
                 return result;
             }
