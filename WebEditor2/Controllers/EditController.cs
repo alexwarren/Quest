@@ -8,10 +8,11 @@ using Microsoft.WindowsAzure.Storage.Blob;
 using WebEditor2.Models;
 using Microsoft.AspNetCore.Hosting.Server;
 using WebEditor2.Services;
+using WebInterfaces;
 
 namespace WebEditor2.Controllers
 {
-    public class EditController(IConfiguration configuration, ILogger logger, Session<Dictionary<int, EditorService>> editorSession) : Controller
+    public class EditController(IConfiguration configuration, ILogger logger, Session<Dictionary<int, EditorService>> editorSession, IEditorFileManager fileManager) : Controller
     {
         // GET: /Edit/Game/1
 
@@ -32,12 +33,12 @@ namespace WebEditor2.Controllers
 
         public JsonResult Load(int id, bool simpleMode)
         {
-            Services.EditorService editor = new Services.EditorService(logger);
+            Services.EditorService editor = new Services.EditorService(logger, fileManager);
             EditorDictionary[id] = editor;
             // TODO
             // string libFolder = Server.MapPath("~/bin/Core/");
             string libFolder = null;
-            string filename = Services.FileManagerLoader.GetFileManager().GetFile(id);
+            string filename = fileManager.GetFile(id);
             if (filename == null)
             {
                 logger.LogInformation("Invalid game {0}", id);
@@ -50,7 +51,7 @@ namespace WebEditor2.Controllers
                 return Json(new { error = result.Error.Replace(Environment.NewLine, "<br/>") });
             }
 
-            string playFilename = Services.FileManagerLoader.GetFileManager().GetPlayFilename(id);
+            string playFilename = fileManager.GetPlayFilename(id);
 
             return Json(new
             {
@@ -285,44 +286,44 @@ namespace WebEditor2.Controllers
 
             var filename = Path.GetFileName(fileModel.File.FileName);
             logger.LogDebug("{0}: Upload file {1}", fileModel.GameId, filename);
-            var uploadPath = Services.FileManagerLoader.GetFileManager().UploadPath(fileModel.GameId);
+            var uploadPath = fileManager.UploadPath(fileModel.GameId);
 
             var inputStream = fileModel.File.OpenReadStream();
 
-            if (Config.AzureFiles)
-            {
-                var container = GetAzureBlobContainer("editorgames");
-                var blob = container.GetBlockBlobReference(uploadPath + "/" + filename);
+            //if (Config.AzureFiles)
+            //{
+            //    var container = GetAzureBlobContainer("editorgames");
+            //    var blob = container.GetBlockBlobReference(uploadPath + "/" + filename);
 
-                var continueSave = true;
+            //    var continueSave = true;
 
-                if (blob.Exists())
-                {
-                    using (var ms = new MemoryStream())
-                    {
-                        blob.DownloadToStream(ms);
-                        ms.Position = 0;
-                        if (!FilesAreIdentical(inputStream, ms))
-                        {
-                            filename = Path.GetFileNameWithoutExtension(fileModel.File.FileName) + " " + DateTime.UtcNow.ToString("yyyy-MM-dd HH.mm.ss") + Path.GetExtension(fileModel.File.FileName);
-                            blob = container.GetBlockBlobReference(uploadPath + "/" + filename);
-                        }
-                        else
-                        {
-                            // skip saving if files are identical
-                            continueSave = false;
-                        }
-                    }
-                }
+            //    if (blob.Exists())
+            //    {
+            //        using (var ms = new MemoryStream())
+            //        {
+            //            blob.DownloadToStream(ms);
+            //            ms.Position = 0;
+            //            if (!FilesAreIdentical(inputStream, ms))
+            //            {
+            //                filename = Path.GetFileNameWithoutExtension(fileModel.File.FileName) + " " + DateTime.UtcNow.ToString("yyyy-MM-dd HH.mm.ss") + Path.GetExtension(fileModel.File.FileName);
+            //                blob = container.GetBlockBlobReference(uploadPath + "/" + filename);
+            //            }
+            //            else
+            //            {
+            //                // skip saving if files are identical
+            //                continueSave = false;
+            //            }
+            //        }
+            //    }
 
-                if (continueSave)
-                {
-                    blob.Properties.ContentType = "application/octet-stream";
-                    blob.UploadFromStream(inputStream);
-                }
-            }
-            else
-            {
+            //    if (continueSave)
+            //    {
+            //        blob.Properties.ContentType = "application/octet-stream";
+            //        blob.UploadFromStream(inputStream);
+            //    }
+            //}
+            //else
+            //{
                 var continueSave = true;
 
                 // Check to see if file with same name exists
@@ -351,7 +352,7 @@ namespace WebEditor2.Controllers
                     // fileModel.File.SaveAs(saveFile);
                     UploadOutputToAzure(saveFile);
                 }
-            }
+            //}
 
             ModelState.Remove("AllFiles");
             fileModel.AllFiles = GetAllFilesList(fileModel.GameId);
@@ -363,16 +364,16 @@ namespace WebEditor2.Controllers
 
         private string GetAllFilesList(int id)
         {
-            var path = Services.FileManagerLoader.GetFileManager().UploadPath(id);
+            var path = fileManager.UploadPath(id);
             if (path == null) return null;  // this will be the case if there was no logged-in user
 
-            if (Config.AzureFiles)
-            {
-                var uploadPath = Services.FileManagerLoader.GetFileManager().UploadPath(id);
-                var container = GetAzureBlobContainer("editorgames");
-                var blobs = container.ListBlobs(uploadPath + "/");
-                return string.Join(":", blobs.Select(b => Path.GetFileName(b.Uri.ToString())));
-            }
+            //if (Config.AzureFiles)
+            //{
+            //    var uploadPath = fileManager.UploadPath(id);
+            //    var container = GetAzureBlobContainer("editorgames");
+            //    var blobs = container.ListBlobs(uploadPath + "/");
+            //    return string.Join(":", blobs.Select(b => Path.GetFileName(b.Uri.ToString())));
+            //}
 
             var files = Directory.GetFiles(path).Select(f => Path.GetFileName(f)).OrderBy(f => f);
             return string.Join(":", files);
@@ -381,9 +382,10 @@ namespace WebEditor2.Controllers
         public ActionResult Publish(int id)
         {
             logger.LogInformation("Publishing game {0}", id);
-            Services.EditorService editor = new Services.EditorService(logger);
-            string libFolder = Server.MapPath("~/bin/Core/");
-            string filename = Services.FileManagerLoader.GetFileManager().GetFile(id);
+            Services.EditorService editor = new Services.EditorService(logger, fileManager);
+            // TODO
+            string libFolder = null; // Server.MapPath("~/bin/Core/");
+            string filename = fileManager.GetFile(id);
             if (filename == null)
             {
                 logger.LogInformation("Publish failed for {0} - couldn't get file", id);
@@ -396,41 +398,41 @@ namespace WebEditor2.Controllers
                 return View("Error");
             }
 
-            if (Config.AzureFiles)
-            {
-                var uploadPath = Services.FileManagerLoader.GetFileManager().UploadPath(id);
-                var container = GetAzureBlobContainer("editorgames");
-                var blobs = container.ListBlobs(uploadPath + "/");
-                var includeFiles = new List<EditorController.PackageIncludeFile>();
-                foreach (var blob in blobs.OfType<CloudBlockBlob>())
-                {
-                    if (blob.Name.EndsWith(".aslx")) continue;
-                    var blobReference = container.GetBlockBlobReference(blob.Name);
-                    var ms = new MemoryStream();
-                    blobReference.DownloadToStream(ms);
-                    ms.Position = 0;
-                    includeFiles.Add(new EditorController.PackageIncludeFile
-                    {
-                        Filename = Path.GetFileName(blob.Uri.ToString()),
-                        Content = ms
-                    });
-                }
+            //if (Config.AzureFiles)
+            //{
+            //    var uploadPath = fileManager.UploadPath(id);
+            //    var container = GetAzureBlobContainer("editorgames");
+            //    var blobs = container.ListBlobs(uploadPath + "/");
+            //    var includeFiles = new List<EditorController.PackageIncludeFile>();
+            //    foreach (var blob in blobs.OfType<CloudBlockBlob>())
+            //    {
+            //        if (blob.Name.EndsWith(".aslx")) continue;
+            //        var blobReference = container.GetBlockBlobReference(blob.Name);
+            //        var ms = new MemoryStream();
+            //        blobReference.DownloadToStream(ms);
+            //        ms.Position = 0;
+            //        includeFiles.Add(new EditorController.PackageIncludeFile
+            //        {
+            //            Filename = Path.GetFileName(blob.Uri.ToString()),
+            //            Content = ms
+            //        });
+            //    }
 
-                using (var outputStream = new MemoryStream())
-                {
-                    editor.Publish(null, includeFiles, outputStream);
-                    outputStream.Position = 0;
-                    var blob = container.GetBlockBlobReference(uploadPath + "/Output/" + Path.GetFileNameWithoutExtension(filename) + ".quest");
-                    blob.UploadFromStream(outputStream);
-                }
+            //    using (var outputStream = new MemoryStream())
+            //    {
+            //        editor.Publish(null, includeFiles, outputStream);
+            //        outputStream.Position = 0;
+            //        var blob = container.GetBlockBlobReference(uploadPath + "/Output/" + Path.GetFileNameWithoutExtension(filename) + ".quest");
+            //        blob.UploadFromStream(outputStream);
+            //    }
 
-                foreach (var stream in includeFiles.Select(i => i.Content))
-                {
-                    stream.Dispose();
-                }
-            }
-            else
-            {
+            //    foreach (var stream in includeFiles.Select(i => i.Content))
+            //    {
+            //        stream.Dispose();
+            //    }
+            //}
+            //else
+            //{
                 string outputFolder = Path.Combine(Path.GetDirectoryName(filename), "Output");
 
                 Directory.CreateDirectory(outputFolder);
@@ -451,7 +453,7 @@ namespace WebEditor2.Controllers
                 UploadOutputToAzure(outputFilename);
 
                 logger.LogInformation("Publish succeeded for {0}", id);
-            }
+            //}
 
 
             string url = configuration["PublishURL"] + id;
@@ -506,7 +508,7 @@ namespace WebEditor2.Controllers
         {
             ZipFile zip = new ZipFile();
 
-            var uploadPath = Services.FileManagerLoader.GetFileManager().UploadPath(id);
+            var uploadPath = fileManager.UploadPath(id);
             var container = GetAzureBlobContainer("editorgames");
             var blobs = container.ListBlobs(uploadPath + "/");
             foreach (var blob in blobs.OfType<CloudBlockBlob>())

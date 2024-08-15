@@ -50,11 +50,12 @@ namespace WebEditor2.Services
             return EditorController.GetValidationError(result, input);
         }
 
-        public EditorService(ILogger logger)
+        public EditorService(ILogger logger, IEditorFileManager fileManager)
         {
             m_controller = new EditorController();
             m_controller.EditorMode = EditorMode.Web;
             this.logger = logger;
+            this.fileManager = fileManager;
         }
 
         public InitialiseResult Initialise(int id, string filename, string libFolder, bool simpleMode)
@@ -408,7 +409,7 @@ namespace WebEditor2.Services
 
                 if (m_needsSaving)
                 {
-                    FileManagerLoader.GetFileManager().SaveFile(m_id, m_controller.Save());
+                    fileManager.SaveFile(m_id, m_controller.Save());
                     m_needsSaving = false;
                 }
             }
@@ -919,6 +920,7 @@ namespace WebEditor2.Services
 
         private static List<int> s_oppositeDirs = new List<int> { 7, 6, 5, 4, 3, 2, 1, 0, 9, 8, 11, 10 };
         private readonly ILogger logger;
+        private readonly IEditorFileManager fileManager;
 
         private string GetInverseDirection(string direction, List<string> directionNames)
         {
@@ -2341,10 +2343,10 @@ namespace WebEditor2.Services
             return GetAvailableTemplates(folder).Values.First(t => t.TemplateName == templateName).Filename;
         }
 
-        public static int CreateNewGame(string gameType, string templateName, string gameName, string templateFolder)
+        public int CreateNewGame(string gameType, string templateName, string gameName, string templateFolder)
         {
             string filename = EditorController.GenerateSafeFilename(gameName) + ".aslx";
-            CreateNewFileData fileData = FileManagerLoader.GetFileManager().CreateNewFile(filename, gameName);
+            CreateNewFileData fileData = fileManager.CreateNewFile(filename, gameName);
             var data = EditorController.CreateNewGameFile(fileData.FullPath, GetTemplateFile(gameType, templateName, templateFolder), gameName);
 
             // TODO
@@ -2352,8 +2354,8 @@ namespace WebEditor2.Services
             //{
                 System.IO.File.WriteAllText(fileData.FullPath, data);
             //}
-            
-            FileManagerLoader.GetFileManager().FinishCreatingNewFile(fileData.FullPath, data);
+
+            fileManager.FinishCreatingNewFile(fileData.FullPath, data);
             return fileData.Id;
         }
 

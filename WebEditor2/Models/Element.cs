@@ -93,7 +93,7 @@ namespace WebEditor2.Models
         }
     }
 
-    public class ElementSaveDataModelBinder(Session<Dictionary<int, EditorService>> editorSession): IModelBinder
+    public class ElementSaveDataModelBinder(Session<Dictionary<int, EditorService>> editorSession, ILogger logger): IModelBinder
     {
         public async Task BindModelAsync(ModelBindingContext bindingContext)
         {
@@ -123,14 +123,14 @@ namespace WebEditor2.Models
 
             if (!editorDictionary.ContainsKey(gameId))
             {
-                Logging.Log.ErrorFormat("Current Session does not contain a game id of {0}", gameId);
+                logger.LogError("Current Session does not contain a game id of {0}", gameId);
                 bindingContext.Result = ModelBindingResult.Failed();
                 return;
             }
 
             if (editorDictionary[gameId] == null)
             {
-                Logging.Log.ErrorFormat("Current Session has game id {0} = null", gameId);
+                logger.LogError("Current Session has game id {0} = null", gameId);
                 bindingContext.Result = ModelBindingResult.Failed();
                 return; ;
             }
@@ -139,19 +139,19 @@ namespace WebEditor2.Models
 
             if (originalElement == null)
             {
-                Logging.Log.ErrorFormat("BindModel failed for game {0} element '{1}' - originalElement is null", gameId, key);
+                logger.LogError("BindModel failed for game {0} element '{1}' - originalElement is null", gameId, key);
                 bindingContext.Result = ModelBindingResult.Failed();
                 return;
             }
             if (originalElement.EditorDefinition == null)
             {
-                Logging.Log.ErrorFormat("BindModel failed for game {0} element '{1}' - originalElement.EditorDefinition is null", gameId, key);
+                logger.LogError("BindModel failed for game {0} element '{1}' - originalElement.EditorDefinition is null", gameId, key);
                 bindingContext.Result = ModelBindingResult.Failed();
                 return;
             }
             if (originalElement.EditorDefinition.Tabs == null)
             {
-                Logging.Log.ErrorFormat("BindModel failed for game {0} element '{1}' - originalElement.EditorDefinition.Tabs is null", gameId, key);
+                logger.LogError("BindModel failed for game {0} element '{1}' - originalElement.EditorDefinition.Tabs is null", gameId, key);
                 bindingContext.Result = ModelBindingResult.Failed();
                 return;
             }
@@ -223,7 +223,7 @@ namespace WebEditor2.Models
                     ValueProviderResult value = bindingContext.ValueProvider.GetValue(attribute);
                     if (value == null)
                     {
-                        Logging.Log.ErrorFormat("Expected true/false value for '{0}', but got null", attribute);
+                        logger.LogError("Expected true/false value for '{0}', but got null", attribute);
                         saveValue = false;
                     }
                     else
@@ -235,8 +235,8 @@ namespace WebEditor2.Models
                     saveValue = BindScript(bindingContext.ValueProvider, attribute, originalElement.EditorData, editorDictionary[gameId].Controller, ignoreExpression);
                     break;
                 case "multi":
-                    string type = WebEditor.Views.Edit.ControlHelpers.GetTypeName(originalElement.EditorData.GetAttribute(attribute));
-                    string subControlType = WebEditor.Views.Edit.ControlHelpers.GetEditorNameForType(type, ctl.GetDictionary("editors"));
+                    string type = WebEditor2.Views.Edit.ControlHelpers.GetTypeName(originalElement.EditorData.GetAttribute(attribute));
+                    string subControlType = WebEditor2.Views.Edit.ControlHelpers.GetEditorNameForType(type, ctl.GetDictionary("editors"));
                     BindControl(bindingContext, result, gameId, ignoreExpression, editorDictionary, originalElement, ctl, subControlType);
                     addSaveValueToResult = false;
                     break;
@@ -306,7 +306,7 @@ namespace WebEditor2.Models
             {
                 if (result.Values.ContainsKey(attribute))
                 {
-                    Logging.Log.ErrorFormat("SaveData already contains attribute \"{0}\" - saveValue (\"{1}\") discarded", attribute, saveValue);
+                    logger.LogError("SaveData already contains attribute \"{0}\" - saveValue (\"{1}\") discarded", attribute, saveValue);
                 }
                 else
                 {
@@ -582,19 +582,21 @@ namespace WebEditor2.Models
 
         private string GetValueProviderString(IValueProvider provider, string key)
         {
-            try
-            {
+            //try
+            //{
                 ValueProviderResult value = provider.GetValue(key);
                 return value == null ? null : value.FirstValue;
-            }
-            catch (HttpRequestValidationException)
-            {
-                // Workaround for "potentially dangerous" form values which may contain HTML
-                Func<System.Collections.Specialized.NameValueCollection> formGetter;
-                Func<System.Collections.Specialized.NameValueCollection> queryStringGetter;
-                Microsoft.Web.Infrastructure.DynamicValidationHelper.ValidationUtility.GetUnvalidatedCollections(HttpContext.Current, out formGetter, out queryStringGetter);
-                return formGetter().Get(key);
-            }
+            //}
+            //catch (HttpRequestValidationException)
+            //{
+            //    // TODO?
+
+            //    // Workaround for "potentially dangerous" form values which may contain HTML
+            //    Func<System.Collections.Specialized.NameValueCollection> formGetter;
+            //    Func<System.Collections.Specialized.NameValueCollection> queryStringGetter;
+            //    Microsoft.Web.Infrastructure.DynamicValidationHelper.ValidationUtility.GetUnvalidatedCollections(HttpContext.Current, out formGetter, out queryStringGetter);
+            //    return formGetter().Get(key);
+            //}
         }
 
         private string StripHTMLComments(string input)
