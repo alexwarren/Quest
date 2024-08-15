@@ -52,7 +52,8 @@ namespace WebEditor2.Controllers
 
             string playFilename = Services.FileManagerLoader.GetFileManager().GetPlayFilename(id);
 
-            return Json(new {
+            return Json(new
+            {
                 tree = editor.GetElementTreeForJson(),
                 editorstyle = editor.Style,
                 playurl = configuration["PlayURL"] + "?id=editor/" + HttpUtility.UrlEncode(playFilename),
@@ -394,7 +395,7 @@ namespace WebEditor2.Controllers
                 logger.LogInformation("Publish failed for {0} - failed to initialise editor", id);
                 return View("Error");
             }
-            
+
             if (Config.AzureFiles)
             {
                 var uploadPath = Services.FileManagerLoader.GetFileManager().UploadPath(id);
@@ -422,7 +423,7 @@ namespace WebEditor2.Controllers
                     var blob = container.GetBlockBlobReference(uploadPath + "/Output/" + Path.GetFileNameWithoutExtension(filename) + ".quest");
                     blob.UploadFromStream(outputStream);
                 }
-                
+
                 foreach (var stream in includeFiles.Select(i => i.Content))
                 {
                     stream.Dispose();
@@ -451,7 +452,7 @@ namespace WebEditor2.Controllers
 
                 logger.LogInformation("Publish succeeded for {0}", id);
             }
-            
+
 
             string url = configuration["PublishURL"] + id;
 
@@ -464,7 +465,7 @@ namespace WebEditor2.Controllers
             var container = GetAzureBlobContainer("editorgames");
             var blob = container.GetBlockBlobReference(filename.Substring(16).Replace(@"\", "/"));
             blob.Properties.ContentType = "application/octet-stream";
-            
+
             var stream = System.IO.File.OpenRead(filename);
             blob.UploadFromStream(stream);
         }
@@ -496,7 +497,7 @@ namespace WebEditor2.Controllers
                 file1byte = file1.ReadByte();
                 file2byte = file2.ReadByte();
             } while ((file1byte == file2byte) && (file1byte != -1));
-            
+
             // return result of comparison
             return ((file1byte - file2byte) == 0);
         }
@@ -549,13 +550,14 @@ namespace WebEditor2.Controllers
             this.FileDownloadName = fileName;
         }
 
-        /// <summary>
-        /// Writes the file to the response.
-        /// </summary>
-        /// <param name="response">The response object.</param>
-        protected override void WriteFile(System.Web.HttpResponseBase response)
-        {
-            this.Content(response.OutputStream);
-        }
+        // TODO
+        ///// <summary>
+        ///// Writes the file to the response.
+        ///// </summary>
+        ///// <param name="response">The response object.</param>
+        //protected override void WriteFile(System.Web.HttpResponseBase response)
+        //{
+        //    this.Content(response.OutputStream);
+        //}
     }
 }

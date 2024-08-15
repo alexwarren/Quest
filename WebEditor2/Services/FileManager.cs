@@ -6,12 +6,12 @@ using WebInterfaces;
 
 namespace WebEditor2.Services
 {
-    public static class FileManagerLoader
+    public class FileManagerLoader(IConfiguration configuration)
     {
         private static bool s_loaded = false;
         private static IEditorFileManager s_editorFileManager = null;
 
-        public static IEditorFileManager GetFileManager()
+        public IEditorFileManager GetFileManager()
         {
             if (s_loaded)
             {
@@ -19,7 +19,7 @@ namespace WebEditor2.Services
             }
             else
             {
-                string typeName = ConfigurationManager.AppSettings["FileManagerType"];
+                string typeName = configuration["FileManagerType"];
                 s_loaded = true;
                 if (typeName == null) return null;
                 s_editorFileManager = (IEditorFileManager)Activator.CreateInstance(Type.GetType(typeName));

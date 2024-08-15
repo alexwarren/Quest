@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using TextAdventures.Quest;
-using System.Web.Mvc;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using WebEditor2.Services;
 
 namespace WebEditor2.Models
 {
@@ -91,19 +93,19 @@ namespace WebEditor2.Models
         }
     }
 
-    public class ElementSaveDataModelBinder : IModelBinder
+    public class ElementSaveDataModelBinder(Session<Dictionary<int, EditorService>> editorSession): IModelBinder
     {
-        public object BindModel(ControllerContext controllerContext, ModelBindingContext bindingContext)
+        public async Task BindModelAsync(ModelBindingContext bindingContext)
         {
             ElementSaveData result = new ElementSaveData();
             result.Values = new Dictionary<string, object>();
 
-            int gameId = (int)bindingContext.ValueProvider.GetValue("_game_id").ConvertTo(typeof(int));
-            string key = (string)bindingContext.ValueProvider.GetValue("_key").ConvertTo(typeof(string));
-            string redirectToElement = (string)bindingContext.ValueProvider.GetValue("_redirectToElement").ConvertTo(typeof(string));
-            string additionalAction = (string)bindingContext.ValueProvider.GetValue("_additionalAction").ConvertTo(typeof(string));
-            string additionalActionTab = (string)bindingContext.ValueProvider.GetValue("_additionalActionTab").ConvertTo(typeof(string));
-            string ignoreExpression = (string)bindingContext.ValueProvider.GetValue("_ignoreExpression").ConvertTo(typeof(string));
+            int gameId = int.Parse(bindingContext.ValueProvider.GetValue("_game_id").FirstValue);
+            string key = (string)bindingContext.ValueProvider.GetValue("_key").FirstValue;
+            string redirectToElement = (string)bindingContext.ValueProvider.GetValue("_redirectToElement").FirstValue;
+            string additionalAction = (string)bindingContext.ValueProvider.GetValue("_additionalAction").FirstValue;
+            string additionalActionTab = (string)bindingContext.ValueProvider.GetValue("_additionalActionTab").FirstValue;
+            string ignoreExpression = (string)bindingContext.ValueProvider.GetValue("_ignoreExpression").FirstValue;
 
             result.GameId = gameId;
             result.Key = key;
@@ -111,26 +113,26 @@ namespace WebEditor2.Models
             result.AdditionalAction = additionalAction;
             result.AdditionalActionTab = additionalActionTab;
 
-            var editorDictionary = controllerContext.RequestContext.HttpContext.Session["EditorDictionary"] as Dictionary<int, Services.EditorService>;
+            var editorDictionary = editorSession.Get();
 
             if (editorDictionary == null)
             {
-                result.Success = false;
-                return result;
+                bindingContext.Result = ModelBindingResult.Failed();
+                return;
             }
 
             if (!editorDictionary.ContainsKey(gameId))
             {
                 Logging.Log.ErrorFormat("Current Session does not contain a game id of {0}", gameId);
-                result.Success = false;
-                return result;
+                bindingContext.Result = ModelBindingResult.Failed();
+                return;
             }
 
             if (editorDictionary[gameId] == null)
             {
                 Logging.Log.ErrorFormat("Current Session has game id {0} = null", gameId);
-                result.Success = false;
-                return false;
+                bindingContext.Result = ModelBindingResult.Failed();
+                return; ;
             }
 
             Models.Element originalElement = editorDictionary[gameId].GetElementModelForView(gameId, key);
@@ -138,20 +140,20 @@ namespace WebEditor2.Models
             if (originalElement == null)
             {
                 Logging.Log.ErrorFormat("BindModel failed for game {0} element '{1}' - originalElement is null", gameId, key);
-                result.Success = false;
-                return false;
+                bindingContext.Result = ModelBindingResult.Failed();
+                return;
             }
             if (originalElement.EditorDefinition == null)
             {
                 Logging.Log.ErrorFormat("BindModel failed for game {0} element '{1}' - originalElement.EditorDefinition is null", gameId, key);
-                result.Success = false;
-                return false;
+                bindingContext.Result = ModelBindingResult.Failed();
+                return;
             }
             if (originalElement.EditorDefinition.Tabs == null)
             {
                 Logging.Log.ErrorFormat("BindModel failed for game {0} element '{1}' - originalElement.EditorDefinition.Tabs is null", gameId, key);
-                result.Success = false;
-                return false;
+                bindingContext.Result = ModelBindingResult.Failed();
+                return;
             }
 
             foreach (IEditorTab tab in originalElement.EditorDefinition.Tabs.Values)
@@ -168,9 +170,7 @@ namespace WebEditor2.Models
                 }
             }
 
-            result.Success = true;
-
-            return result;
+            bindingContext.Result = ModelBindingResult.Success(result);
         }
 
         private void BindControl(ModelBindingContext bindingContext, ElementSaveData result, int gameId, string ignoreExpression, Dictionary<int, Services.EditorService> editorDictionary, Models.Element originalElement, IEditorControl ctl, string controlType, string attribute = null)
@@ -228,7 +228,7 @@ namespace WebEditor2.Models
                     }
                     else
                     {
-                        saveValue = value.ConvertTo(typeof(bool));
+                        saveValue = bool.Parse(value.FirstValue);
                     }
                     break;
                 case "script":
@@ -341,7 +341,7 @@ namespace WebEditor2.Models
             foreach (IEditableScript script in originalScript.Scripts)
             {
                 ElementSaveData.ScriptSaveData scriptLine = new ElementSaveData.ScriptSaveData();
-                scriptLine.IsSelected = (bool)provider.GetValue(string.Format("selected-{0}-{1}", attribute, count)).ConvertTo(typeof(bool));
+                scriptLine.IsSelected = bool.Parse(provider.GetValue(string.Format("selected-{0}-{1}", attribute, count)).FirstValue);
 
                 if (script.Type != ScriptType.If)
                 {
@@ -504,7 +504,7 @@ namespace WebEditor2.Models
                 {
                     string dropdownKey = string.Format("{0}-expressioneditordropdown", attributePrefix);
                     ValueProviderResult dropdownKeyValueResult = provider.GetValue(dropdownKey);
-                    string dropdownKeyValue = (dropdownKeyValueResult != null) ? dropdownKeyValueResult.ConvertTo(typeof(string)) as string : null;
+                    string dropdownKeyValue = (dropdownKeyValueResult != null) ? dropdownKeyValueResult.FirstValue : null;
                     if (dropdownKeyValue == "expression" || dropdownKeyValue == null)
                     {
                         string key = string.Format("{0}-expressioneditor", attributePrefix);
@@ -537,7 +537,7 @@ namespace WebEditor2.Models
                 else
                 {
                     string dropdownKey = string.Format("{0}-templatedropdown", attributePrefix);
-                    string dropdownKeyValue = provider.GetValue(dropdownKey).ConvertTo(typeof(string)) as string;
+                    string dropdownKeyValue = provider.GetValue(dropdownKey).FirstValue;
                     if (dropdownKeyValue == "expression")
                     {
                         string key = attributePrefix;
@@ -585,7 +585,7 @@ namespace WebEditor2.Models
             try
             {
                 ValueProviderResult value = provider.GetValue(key);
-                return value == null ? null : (string)value.ConvertTo(typeof(string));
+                return value == null ? null : value.FirstValue;
             }
             catch (HttpRequestValidationException)
             {
