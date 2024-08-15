@@ -1,4 +1,5 @@
 ﻿@model WebEditor2.Models.ScriptDictionary
+@using static WebEditor2.Views.ViewExtensions;
 
 @if (Model.Value != null && Html.ViewData.ModelState.ContainsKey(Model.Value.Id) && Html.ViewData.ModelState[Model.Value.Id].Errors.Count > 0)
 {

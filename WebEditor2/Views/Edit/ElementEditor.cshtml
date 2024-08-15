@@ -221,23 +221,22 @@ Working...
     }
 </div>
 
-@helper RenderEditorControl(IEditorControl ctl, bool isFirst, string controlType, string caption = null)
-{
-    var model = new WebEditor.Models.Controls.EditorControl
-    {
-        GameId = Model.GameId,
-        Key = Model.Key,
-        Controller = Model.Controller,
-        EditorData = Model.EditorData,
-        Control = ctl,
-        IsFirst = isFirst,
-        ControlType = controlType,
-        Caption = caption
-    };
-    Html.RenderPartial("Controls/EditorControl", model);
-}
-
 @functions {
+    void RenderEditorControl(IEditorControl ctl, bool isFirst, string controlType, string caption = null)
+    {
+        var model = new WebEditor2.Models.Controls.EditorControl
+            {
+                GameId = Model.GameId,
+                Key = Model.Key,
+                Controller = Model.Controller,
+                EditorData = Model.EditorData,
+                Control = ctl,
+                IsFirst = isFirst,
+                ControlType = controlType,
+                Caption = caption
+            };
+        Html.RenderPartial("Controls/EditorControl", model);
+    }
     bool IsLongCaption(IEditorControl ctl)
     {
         if (ctl.Caption == null) return false;

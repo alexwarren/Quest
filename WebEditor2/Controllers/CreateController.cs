@@ -3,7 +3,7 @@ using WebEditor2.Services;
 
 namespace WebEditor2.Controllers
 {
-    public class CreateController : Controller
+    public class CreateController(EditorService editorService) : Controller
     {
         //
         // GET: /Create/
@@ -24,7 +24,7 @@ namespace WebEditor2.Controllers
             EditorService.PopulateCreateModelLists(createModel, TemplateFolder);
             if (ModelState.IsValid)
             {
-                int newId = EditorService.CreateNewGame(createModel.SelectedType,
+                int newId = editorService.CreateNewGame(createModel.SelectedType,
                     createModel.SelectedTemplate,
                     createModel.GameName,
                     TemplateFolder);

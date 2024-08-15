@@ -1,20 +1,23 @@
-﻿@model WebEditor.Models.Script
+﻿@model WebEditor2.Models.Script
 @using TextAdventures.Quest;
 @using WebEditor2.Views.Edit;
+@using static WebEditor2.Views.ViewExtensions;
 
-@RenderScripts(Model.Scripts, Model.Attribute)
-
-@helper RenderScripts(IEditableScripts scripts, string attribute)
+@{
+    RenderScripts(Model.Scripts, Model.Attribute);
+}
+@functions {
+    void RenderScripts(IEditableScripts scripts, string zattribute)
 {
-    <div class="ui-widget-header ui-corner-all toolbar script-toolbar" id="script-toolbar-@attribute" data-key="@attribute" style="display: none">
-        <button type="button" class="script-delete" data-key="@attribute">Delete</button>
+    <div class="ui-widget-header ui-corner-all toolbar script-toolbar" id="script-toolbar-@zattribute" data-key="@zattribute" style="display: none">
+        <button type="button" class="script-delete" data-key="@zattribute">Delete</button>
         <span class="script-clipboard">
-            <button type="button" class="script-cut" data-key="@attribute">Cut</button>
-            <button type="button" class="script-copy" data-key="@attribute">Copy</button>
+            <button type="button" class="script-cut" data-key="@zattribute">Cut</button>
+            <button type="button" class="script-copy" data-key="@zattribute">Copy</button>
         </span>
         <span class="script-move">
-            <button type="button" class="script-moveup" data-key="@attribute">Move up</button>
-            <button type="button" class="script-movedown" data-key="@attribute">Move down</button>
+            <button type="button" class="script-moveup" data-key="@zattribute">Move up</button>
+            <button type="button" class="script-movedown" data-key="@zattribute">Move down</button>
         </span>
     </div>
 
@@ -34,7 +37,7 @@
                     bool isSelected = Model.SelectedScripts.Contains(script);
                     IEditorDefinition definition = Model.Controller.GetEditorDefinition(script);
                     <div class="scriptLine">
-                        @Html.CheckBox("selected-" + attribute + "-" + count.ToString(), isSelected, new { @class = "script-select", data_key = attribute })
+                        @Html.CheckBox("selected-" + zattribute + "-" + count.ToString(), isSelected, new { @class = "script-select", data_key = zattribute })
                         @if (script.Type != ScriptType.If)
                         {
                             IEditorData scriptEditorData = Model.Controller.GetScriptEditorData(script);
@@ -46,38 +49,38 @@
                                 }
                                 else
                                 {
-                                    <text> </text>
+                                        <text> </text>
+                                    }
+                                    object value = ctl.Attribute == null ? null : scriptEditorData.GetAttribute(ctl.Attribute);
+                                    RenderEditorControl(ctl, value, zattribute + "-" + count.ToString());
                                 }
-                                object value = ctl.Attribute == null ? null : scriptEditorData.GetAttribute(ctl.Attribute);
-                                @RenderEditorControl(ctl, value, attribute + "-" + count.ToString())
                             }
-                        }
-                        else
-                        {
-                            @RenderIfScript((EditableIfScript)script, attribute + "-" + count.ToString())
-                        }
+                            else
+                            {
+                                RenderIfScript((EditableIfScript)script, zattribute + "-" + count.ToString());
+                            }
                     </div>
                     count++;
                 }
             }
         }
 
-        <button type="button" class="script-add" data-key="@attribute">Add new script</button>
+        <button type="button" class="script-add" data-key="@zattribute">Add new script</button>
         @if (Model.Controller.CanPasteScript())
         {
-            <button type="button" class="script-paste" data-key="@attribute">Paste</button>
+            <button type="button" class="script-paste" data-key="@zattribute">Paste</button>
         }
         @{
             string code = scripts == null ? null : scripts.Code;
         }
         @if (!Model.Controller.SimpleMode)
         {
-            <button type="button" id="script-codeview-@attribute" class="script-codeview" data-key="@attribute" data-code="@code">Code View</button>
+            <button type="button" id="script-codeview-@zattribute" class="script-codeview" data-key="@zattribute" data-code="@code">Code View</button>
         }
     </div>
 }
 
-@helper RenderEditorControl(IEditorControl ctl, object value, string attributePrefix)
+void RenderEditorControl(IEditorControl ctl, object value, string attributePrefix)
 {
     string name = attributePrefix + "-" + ctl.Attribute;
     switch (ctl.ControlType)
@@ -107,12 +110,13 @@
             @ctl.Caption
             break;
         case "dropdown":
-            IEnumerable<SelectListItem> valuesList = WebEditor.Views.Edit.ControlHelpers.GetDropdownValues(ctl, (string)value, Model.Controller);
-            @Html.DropDownList(name, valuesList);
-            break;
-        case "expression":
-            @RenderExpressionControl(ctl, name, (string)value)
-            break;
+            IEnumerable<SelectListItem> valuesList = WebEditor2.Views.Edit.ControlHelpers.GetDropdownValues(ctl, (string)value, Model.Controller);
+                @Html.DropDownList(name, valuesList)
+                ;
+                break;
+            case "expression":
+                RenderExpressionControl(ctl, name, (string)value);
+                break;
         case "script":
             string caption = ctl.GetString("caption");
             if (caption != null)
@@ -120,7 +124,7 @@
                 <text>@caption:</text>
             }
             <div class="childScript">
-            @RenderScripts((IEditableScripts)value, name)
+            RenderScripts((IEditableScripts)value, name);
             </div>
             break;
         case "scriptdictionary":
@@ -137,13 +141,13 @@
     }
 }
 
-@helper RenderExpressionControl(IEditorControl ctl, string name, string value)
+void RenderExpressionControl(IEditorControl ctl, string name, string value)
 {
     string templatesFilter = ctl.GetString("usetemplates");
 
     if (templatesFilter != null)
     {
-        @RenderTemplateControl(name, value, templatesFilter);
+        RenderTemplateControl(name, value, templatesFilter);
         return;
     }
 
@@ -231,7 +235,7 @@
     }
 }
 
-@helper RenderTemplateControl(string name, string value, string templatesFilter)
+void RenderTemplateControl(string name, string value, string templatesFilter)
     {
     IEditorDefinition editorDefinition = Model.Controller.GetExpressionEditorDefinition(value, templatesFilter);
     bool useTemplate = (editorDefinition != null);
@@ -272,15 +276,16 @@
         </span>
     }
     
-    @Html.TextBox(name, value, new { style = "width: 350px; display: " + expressionVisibility });
-}
+        @Html.TextBox(name, value, new { style = "width: 350px; display: " + expressionVisibility })
+        ;
+    }
 
-@helper RenderIfScript(EditableIfScript script, string attributePrefix)
+    void RenderIfScript(EditableIfScript script, string attributePrefix)
     {
-    <text>If: </text>
-    @RenderTemplateControl(attributePrefix + "-expression", (string)script.GetAttribute("expression"), "if")
+        <text>If: </text>
+        RenderTemplateControl(attributePrefix + "-expression", (string)script.GetAttribute("expression"), "if");
     <div class="childScript">
-    @RenderScripts(script.ThenScript, attributePrefix + "-then")
+    RenderScripts(script.ThenScript, attributePrefix + "-then");
     </div>
     
     <div class="ifSection ui-widget-header ui-corner-all toolbar" id="ifsection-toolbar-@attributePrefix" style="display: none">
@@ -293,10 +298,10 @@
         <div class="ifSection">
         @Html.CheckBox("selectifsection-" + attributePrefix + "-elseif" + elseIfCount.ToString(), new { @class = "ifsection-select", data_key = attributePrefix })
         Else If:
-        @RenderTemplateControl(attributePrefix + "-elseif" + elseIfCount.ToString() + "-expression", (string)elseIf.GetAttribute("expression"), "if")
+        RenderTemplateControl(attributePrefix + "-elseif" + elseIfCount.ToString() + "-expression", (string)elseIf.GetAttribute("expression"), "if");
         </div>
         <div class="childScript">
-        @RenderScripts(elseIf.EditableScripts, attributePrefix + "-elseif" + elseIfCount.ToString())
+        RenderScripts(elseIf.EditableScripts, attributePrefix + "-elseif" + elseIfCount.ToString());
         </div>
 
         elseIfCount++;
@@ -317,12 +322,11 @@
         Else:
         </div>
         <div class="childScript">
-        @RenderScripts(script.ElseScript, attributePrefix + "-else")
+        RenderScripts(script.ElseScript, attributePrefix + "-else");
         </div>
     }
 }
 
-@functions {
     private bool IsSimpleExpression(IEditorControl ctl, string simpleEditor, string expression)
     {
         if (simpleEditor == "boolean")

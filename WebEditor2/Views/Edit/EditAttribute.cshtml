@@ -59,10 +59,12 @@
 @Html.Hidden("attributeEditorValue")
 
 <div id="attributeMultiControl_editor">
-    @RenderMultiControl(Model.Control, Model.Value)
+    RenderMultiControl(Model.Control, Model.Value);
 </div>
 
-@helper RenderMultiControl(IEditorControl ctl, object value)
+@functions
+{
+    void RenderMultiControl(IEditorControl ctl, object value)
 {
     string caption = ctl.GetString("selfcaption");
     if (caption != null)
@@ -81,7 +83,7 @@
     }
     <div class="multi-control-editor">
         @{
-            var editorControlModel = new WebEditor.Models.Controls.EditorControl
+            var editorControlModel = new WebEditor2.Models.Controls.EditorControl
             {
                 Control = ctl,
                 Caption = ctlCaption,
@@ -95,4 +97,5 @@
             Html.RenderPartial("Controls/EditorControl", editorControlModel);
         }
     </div>
+}
 }

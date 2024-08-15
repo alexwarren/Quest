@@ -1,5 +1,6 @@
 ﻿@using TextAdventures.Quest;
-@using WebEditor.Views.Edit;
+@using WebEditor2.Views.Edit;
+@using static WebEditor2.Views.ViewExtensions;
 @model WebEditor2.Models.Controls.EditorControl
 
 @{
@@ -82,7 +83,7 @@
             @Html.DropDownList(ctl.Attribute, valuesList, new { @class = "elementEditorDropdown" })
             break;
         case "richtext":
-            var richTextModel = new WebEditor.Models.Controls.RichTextControl
+            var richTextModel = new WebEditor2.Models.Controls.RichTextControl
             {
                 Control = ctl,
                 // replace any <br/> tags with NewLine character
@@ -134,7 +135,7 @@
             <input type="number" name="@ctl.Attribute" id="@ctl.Attribute" value="@Model.EditorData.GetAttribute(ctl.Attribute)" @doubleMinMax @step style="width: 50px" />
             break;
         case "multi":
-            @RenderMultiControl(ctl, value)
+            RenderMultiControl(ctl, value);
             break;
         case "dropdowntypes":
             @Html.DropDownList("types-dropdown-" + ctl.Id, ControlHelpers.GetDropDownTypesControlItems(ctl, Model.Controller, Model.Key), new { @class = "types-dropdown", data_key = ctl.Id })
@@ -200,11 +201,11 @@
         default:
             throw new ArgumentException(string.Format("Invalid control type: {0}", controlType));
     }
-}
 
-@helper RenderMultiControl(IEditorControl ctl, object value)
+
+void RenderMultiControl(IEditorControl ctl, object value)
 {
-    var model = new WebEditor.Models.Controls.MultiControl
+    var model = new WebEditor2.Models.Controls.MultiControl
     {
         GameId = Model.GameId,
         Key = Model.Key,
@@ -214,4 +215,5 @@
         Value = value
     };
     Html.RenderPartial("Controls/MultiControl", model);
+}
 }
