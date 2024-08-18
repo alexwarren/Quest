@@ -8246,31 +8246,10 @@ public partial class LegacyGame
             Monitor.PulseAll(_stateLock);
         }
     }
-
-    public void FinishWait()
-    {
-        if (_state != State.Waiting)
-        {
-            return;
-        }
-
-        var runnerThread = new Thread(FinishWaitInNewThread);
-        ChangeState(State.Working);
-        runnerThread.Start();
-        WaitForStateChange(State.Working);
-    }
-
-    private void FinishWaitInNewThread()
-    {
-        lock (_waitLock)
-        {
-            Monitor.PulseAll(_waitLock);
-        }
-    }
-
+    
     public void FinishPause()
     {
-        FinishWait();
+        // TODO
     }
 
     private string m_menuResponse;

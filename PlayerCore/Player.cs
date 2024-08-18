@@ -379,11 +379,6 @@ public class Player : IPlayerHelperUI
         await UiActionAsync(() => PlayerHelper.SendCommand(command, tickCount, metadata));
     }
     
-    public async Task UiEndWaitAsync()
-    {
-        await UiActionAsync(() => PlayerHelper.Game.FinishWait());
-    }
-    
     public async Task UiEndPauseAsync()
     {
         await UiActionAsync(() => PlayerHelper.Game.FinishPause());

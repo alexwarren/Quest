@@ -28,7 +28,6 @@ namespace TextAdventures.Quest
         void Save(string filename, string html);
         byte[] Save(string html);
         string SaveExtension { get; }
-        void FinishWait();
         void FinishPause();
         void SetMenuResponse(string? response);
         void SetQuestionResponse(bool response);

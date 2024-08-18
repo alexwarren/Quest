@@ -15,12 +15,6 @@ public class BlazorJSInterop(Player player)
     }
 
     [JSInvokable]
-    public async Task UiEndWaitAsync()
-    {
-        await Player.UiEndWaitAsync();
-    }
-
-    [JSInvokable]
     public async Task UiEndPauseAsync()
     {
         await Player.UiEndPauseAsync();

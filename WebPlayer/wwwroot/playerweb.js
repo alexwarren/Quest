@@ -22,10 +22,6 @@ class WebPlayer {
         await WebPlayer.dotNetHelper.invokeMethodAsync("UiTickAsync", tickCount);
     }
     
-    static async uiEndWait() {
-        await WebPlayer.dotNetHelper.invokeMethodAsync("UiEndWaitAsync");
-    }
-    
     static async uiEndPause() {
         await WebPlayer.dotNetHelper.invokeMethodAsync("UiEndPauseAsync");
     }

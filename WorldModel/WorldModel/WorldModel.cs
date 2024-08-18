@@ -928,29 +928,6 @@ namespace TextAdventures.Quest
             m_playerUI.DoWait();
         }
 
-        public void FinishWait()
-        {
-            Callback waitCallback = m_callbacks.Pop(CallbackManager.CallbackTypes.Wait);
-            if (waitCallback != null)
-            {
-                DoInNewThreadAndWait(() =>
-                {
-                    RunCallbackAndFinishTurn(waitCallback);
-                });
-            }
-            else
-            {
-                if (m_state == GameState.Finished) return;
-                DoInNewThreadAndWait(() =>
-                {
-                    lock (m_waitForResponseLock)
-                    {
-                        Monitor.Pulse(m_waitForResponseLock);
-                    }
-                });
-            }
-        }
-
         public void StartPause(int ms)
         {
             m_playerUI.DoPause(ms);
